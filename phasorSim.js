@@ -1,7 +1,5 @@
 /* global requestAnimationFrame */
 import { Vec } from './Vec.js'
-// import { drawLine } from './drawFunctions.js'
-// import { drawForground, drawBackground } from './View/drawView.js'
 
 console.log('st  art')
 const phasors = [Vec.unitY.scale(100), Vec.unitX.scale(100)]
@@ -11,7 +9,6 @@ const baseWavelength = 12
 let wavelength = baseWavelength
 const canvas = document.querySelector('#screen')
 const cx = canvas.getContext('2d')
-// let dropdown = document.getElementById('wavelengthSlide')
 
 const settings = {
   animate: { run: true, notPaused: true },
@@ -24,21 +21,12 @@ const pos = {
   g2: new Vec(300, 350),
   p3: new Vec(150, 600),
   g3: new Vec(300, 600)
-  // componentXY: new Vec(200, 200),
-  // resultXY: { x: 300, dx: 5 }
 }
 const controlareas = {
   phasor: [pos.p1.addXY(-100, -100), new Vec(200, 200)],
   wavelength: [pos.g1.addXY(0, -100), new Vec(800, 200)],
   history: [pos.p3.addXY(-145, -145), new Vec(290, 290)]
 }
-
-// console.log(0, 200, phasors[1].mag, phasors[0].phase, 400, 20, 'lightgrey')
-
-// const phasorBase = (n = 2) => { return pos.componentXY.scaleXY(1, n) }
-
-// console.log(pos.componentXY)
-// console.log(...pos.componentXY)
 
 addEventListeners()
 requestAnimationFrame(animateIt)
@@ -68,7 +56,6 @@ function drawForground (c, phasors, pos) {
     drawHistory(c)
     if (hist.length < 10000) hist.push(finalPhasor)
   }
-  // console.log(hist)
 }
 
 function drawHistory (c) {
@@ -81,12 +68,12 @@ function drawHistory (c) {
 function drawBackground (c, pos) {
   c.fillStyle = 'black'
   c.strokeStyle = 'black'
-  c.font = "20px Courier Bold";
+  c.font = '20px Courier Bold'
   c.fillText('Phasor', 50, 45)
   c.strokeRect(0, 0, c.canvas.width, c.canvas.height)
   c.strokeStyle = 'lightblue'
   c.strokeRect(...controlareas.phasor[0], ...controlareas.phasor[1])
-  c.fillText('Wavelength +/- Keys', 300, 45)
+  c.fillText('Wavelength +/- Keys     ' + wavelength + ' / ' + baseWavelength, 300, 45)
   c.strokeRect(...controlareas.history[0], ...controlareas.history[1])
   c.fillText('History \'h\' Key', 50, 445)
   c.strokeRect(...controlareas.wavelength[0], ...controlareas.wavelength[1])
@@ -97,7 +84,7 @@ function dragEvent (t, drag = false) {
   if (test(t, ...controlareas.phasor)) {
     phasors[0] = t.subtract(pos.p1)
   } else if (test(t, ...controlareas.wavelength)) {
-    wavelength = Math.max((t.x - pos.g1.x) / 10, 2)
+    wavelength = Math.max(Math.round((t.x - pos.g1.x) / 10), 2)
   } else if (!drag && test(t, ...controlareas.history)) {
     trace = !trace; hist.length = 0
   }
@@ -134,8 +121,6 @@ function drawArrow (c, start, vec, color = 'black', headSize = 10) {
   drawLine(c, ...start, ...vec, color)
   drawLine(c, ...end, ...vec.rotate(Math.PI * 5 / 4).normalise.scale(headSize), color)
   drawLine(c, ...end, ...vec.rotate(Math.PI * 3 / 4).normalise.scale(headSize), color)
-  // drawLine (c, ...end, vec.scale(), vec, color)
-  // drawLine (c, start, vec, color)
 }
 
 function addEventListeners () {
@@ -185,12 +170,6 @@ function update () {
 
 function animateIt (time, lastTime) {
   if (lastTime != null & settings.animate.run & settings.animate.notPaused) {
-    // wave.phase += (time - lastTime) * 0.002
-    // const newRay = ray.updatePhase(wave.phase)
-    // if (ray.normalisedResultant.phase > newRay.normalisedResultant.phase) {
-    //   intensity.addIntensity(ray, undefined, settings.mirror)
-    // }
-    // phasors.forEach((v, i, a) => { phasors[i] = phasors[i].rotate(-0.01) })
     phasors[0] = phasors[0].rotate(0.02 * baseWavelength / wavelength)
     phasors[1] = phasors[1].rotate(0.02)
 
@@ -199,16 +178,3 @@ function animateIt (time, lastTime) {
 
   requestAnimationFrame(newTime => animateIt(newTime, time))
 }
-
-// function compactify (small) {
-//   if (small) {
-//     /* console.log(canvas.style.position); */
-//     canvas.height = 600
-//     pos.phaseDiagram.y = 500
-//     canvas.style.position = 'absolute'
-//   } else {
-//     pos.phaseDiagram.y = 700
-//     canvas.style.position = 'relative'
-//     canvas.height = 800
-//   }
-// }
