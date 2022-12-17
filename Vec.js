@@ -29,6 +29,11 @@ class Vec {
     return new Vec(x, y)
   }
 
+  withinRectange (a, b) {
+    return (this.x < Math.max(a.x, b.x) && this.x > Math.min(a.x, b.x) &&
+    this.y < Math.max(a.y, b.y) && this.y > Math.min(a.y, b.y))
+  }
+
   get inverse () { return this.scale(-1) }
   get mag () { return Math.sqrt((this.x * this.x) + (this.y * this.y)) }
   get phase () { return Math.atan2(this.y, this.x) }

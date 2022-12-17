@@ -7,7 +7,8 @@ console.log('st  art')
 const phasors = [Vec.unitY.scale(100), Vec.unitX.scale(100)]
 const hist = []
 let trace = false
-let wavelength = 20
+const baseWavelength = 12
+let wavelength = baseWavelength
 const canvas = document.querySelector('#screen')
 const cx = canvas.getContext('2d')
 // let dropdown = document.getElementById('wavelengthSlide')
@@ -17,16 +18,22 @@ const settings = {
   smallscreen: false
 }
 const pos = {
-  p1: new Vec(150, 200),
-  g1: new Vec(300, 200),
-  p2: new Vec(150, 400),
-  g2: new Vec(300, 400),
+  p1: new Vec(150, 150),
+  g1: new Vec(300, 150),
+  p2: new Vec(150, 350),
+  g2: new Vec(300, 350),
   p3: new Vec(150, 600),
   g3: new Vec(300, 600)
   // componentXY: new Vec(200, 200),
   // resultXY: { x: 300, dx: 5 }
 }
-console.log(0, 200, phasors[1].mag, phasors[0].phase, 400, 20, 'lightgrey')
+const controlareas = {
+  phasor: [pos.p1.addXY(-100, -100), new Vec(200, 200)],
+  wavelength: [pos.g1.addXY(0, -100), new Vec(800, 200)],
+  history: [pos.p3.addXY(-145, -145), new Vec(290, 290)]
+}
+
+// console.log(0, 200, phasors[1].mag, phasors[0].phase, 400, 20, 'lightgrey')
 
 // const phasorBase = (n = 2) => { return pos.componentXY.scaleXY(1, n) }
 
@@ -39,19 +46,19 @@ update()
 
 function drawForground (c, phasors, pos) {
   c.fillStyle = 'lightgrey'
-  c.strokeStyle = 'black'
-  drawLine(c, ...pos.p1, ...phasors[0])
-  drawLine(c, ...pos.p2, ...phasors[1])
-  c.strokeStyle = 'green'
-  drawLine(c, ...pos.p3, ...phasors[1])
-  c.strokeStyle = 'red'
-  drawLine(c, ...pos.p3.add(phasors[1]), ...phasors[0])
+  drawArrow(c, pos.p1, phasors[0], 'red')
+  drawArrow(c, pos.p2, phasors[1], 'green')
+  drawArrow(c, pos.p3, phasors[1], 'green')
+  drawArrow(c, pos.p3.add(phasors[1]), phasors[0], 'red')
   c.strokeStyle = 'black'
   const finalPhasor = phasors[0].add(phasors[1])
-  drawLine(c, ...pos.p3.add(finalPhasor), ...finalPhasor.invert())
+  drawArrow(c, pos.p3, finalPhasor)
+  drawLine(c, ...pos.p1.add(phasors[0]), 150 - phasors[0].x, 0, 'rgba(255,0,0,0.4)')
+  drawLine(c, ...pos.p2.add(phasors[1]), 150 - phasors[1].x, 0, 'rgba(0,155,0,0.4)')
+  drawLine(c, ...pos.p3.add(finalPhasor), 150 - finalPhasor.x, 0, 'rgba(0,0,0,0.4)')
 
   const func1 = transformFunc(Math.sin, phasors[0].mag, 1 / wavelength, phasors[0].phase)
-  const func2 = transformFunc(Math.sin, phasors[1].mag, 1 / 20, phasors[1].phase)
+  const func2 = transformFunc(Math.sin, phasors[1].mag, 1 / baseWavelength, phasors[1].phase)
 
   iteratePath(...pos.g1, 800, 'red', func1)
   iteratePath(...pos.g2, 800, 'green', func2)
@@ -59,7 +66,7 @@ function drawForground (c, phasors, pos) {
 
   if (trace) {
     drawHistory(c)
-    if (hist.length < 2000) hist.push(finalPhasor)
+    if (hist.length < 10000) hist.push(finalPhasor)
   }
   // console.log(hist)
 }
@@ -72,13 +79,29 @@ function drawHistory (c) {
 }
 
 function drawBackground (c, pos) {
-  c.fillStyle = 'lightgrey'
+  c.fillStyle = 'black'
   c.strokeStyle = 'black'
+  c.font = "20px Courier Bold";
+  c.fillText('Phasor', 50, 45)
   c.strokeRect(0, 0, c.canvas.width, c.canvas.height)
+  c.strokeStyle = 'lightblue'
+  c.strokeRect(...controlareas.phasor[0], ...controlareas.phasor[1])
+  c.fillText('Wavelength +/- Keys', 300, 45)
+  c.strokeRect(...controlareas.history[0], ...controlareas.history[1])
+  c.fillText('History \'h\' Key', 50, 445)
+  c.strokeRect(...controlareas.wavelength[0], ...controlareas.wavelength[1])
 }
 
-function dragEvent (mouseCoords, b) {
-  phasors[0] = b.subtract(pos.p1)
+function dragEvent (t, drag = false) {
+  const test = (x, a, b) => x.withinRectange(a, a.add(b))
+  if (test(t, ...controlareas.phasor)) {
+    phasors[0] = t.subtract(pos.p1)
+  } else if (test(t, ...controlareas.wavelength)) {
+    wavelength = Math.max((t.x - pos.g1.x) / 10, 2)
+  } else if (!drag && test(t, ...controlareas.history)) {
+    trace = !trace; hist.length = 0
+  }
+
   update()
 }
 
@@ -96,14 +119,23 @@ function iteratePath (x1, y1, length, color = 'black', func = Math.sin) {
   cx.stroke()
 }
 
-function drawLine (c, x1, y1, dx, dy, color) {
-  if (color) { c.strokeStyle = color }
+function drawLine (c, x1, y1, dx = 1, dy = 1, color = 'black') {
+  c.strokeStyle = color
   c.beginPath()
   c.moveTo(x1, y1)
   c.lineTo(x1 + dx, y1 + dy)
   c.stroke()
   c.fill()
   c.beginPath()
+}
+
+function drawArrow (c, start, vec, color = 'black', headSize = 10) {
+  const end = start.add(vec)
+  drawLine(c, ...start, ...vec, color)
+  drawLine(c, ...end, ...vec.rotate(Math.PI * 5 / 4).normalise.scale(headSize), color)
+  drawLine(c, ...end, ...vec.rotate(Math.PI * 3 / 4).normalise.scale(headSize), color)
+  // drawLine (c, ...end, vec.scale(), vec, color)
+  // drawLine (c, start, vec, color)
 }
 
 function addEventListeners () {
@@ -116,13 +148,13 @@ function addEventListeners () {
     update(true)
   })
 
-  window.addEventListener('touchstart', ({ touches: [e] }) => { mouseCoords = new Vec(e.pageX, e.pageY); settings.animate.notPaused = false })
+  window.addEventListener('touchstart', ({ touches: [e] }) => { mouseCoords = new Vec(e.pageX, e.pageY); dragEvent(mouseCoords); settings.animate.notPaused = false })
   window.addEventListener('touchend', ({ touches: [e] }) => { mouseCoords = undefined; settings.animate.notPaused = true })
   window.addEventListener('touchmove', (event) => {
     const { touches: [e] } = event
     if (mouseCoords) {
       const b = new Vec(e.pageX, e.pageY)
-      dragEvent(mouseCoords, b)
+      dragEvent(b, true)
       mouseCoords = b
       if (settings.smallscreen) event.preventDefault()
     }
@@ -132,12 +164,14 @@ function addEventListeners () {
   window.addEventListener('mouseup', e => { mouseCoords = undefined; settings.animate.notPaused = true })
   window.addEventListener('dblclick', e => { settings.animate.run = !settings.animate.run })
   window.addEventListener('click', e => {
+    const b = new Vec(e.offsetX, e.offsetY)
+    dragEvent(b)
     if (e.detail === 3) { settings.animate.run = false }
   })
   window.addEventListener('mousemove', (e) => {
     if (mouseCoords) {
       const b = new Vec(e.offsetX, e.offsetY)
-      dragEvent(mouseCoords, b)
+      dragEvent(b, true)
       mouseCoords = b
     }
   })
@@ -157,7 +191,7 @@ function animateIt (time, lastTime) {
     //   intensity.addIntensity(ray, undefined, settings.mirror)
     // }
     // phasors.forEach((v, i, a) => { phasors[i] = phasors[i].rotate(-0.01) })
-    phasors[0] = phasors[0].rotate(0.02 * 20 / wavelength)
+    phasors[0] = phasors[0].rotate(0.02 * baseWavelength / wavelength)
     phasors[1] = phasors[1].rotate(0.02)
 
     update()
